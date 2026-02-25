@@ -139,7 +139,6 @@ def upgrade() -> None:
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("skill_name", sa.String(100), nullable=False),
         sa.Column("skill_category", skill_category_enum, nullable=False),
-        sa.Column("proficiency_level", sa.String(50), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -157,8 +156,37 @@ def upgrade() -> None:
     op.create_index(op.f("ix_skills_user_id"), "skills", ["user_id"])
     op.create_index(op.f("ix_skills_skill_name"), "skills", ["skill_name"])
 
+    op.create_table(
+        "projects",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("project_title", sa.String(255), nullable=False),
+        sa.Column("start_date", sa.Date, nullable=False),
+        sa.Column("end_date", sa.Date, nullable=True),
+        sa.Column("description", sa.Text, nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_projects")),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+            name=op.f("fk_projects_user_id_users"),
+            ondelete="CASCADE",
+        ),
+        sa.CheckConstraint(
+            "end_date IS NULL OR end_date >= start_date",
+            name=op.f("ck_projects_end_date_gte_start_date"),
+        ),
+    )
+    op.create_index(op.f("ix_projects_user_id"), "projects", ["user_id"])
+
 
 def downgrade() -> None:
+    op.drop_table("projects")
     op.drop_table("skills")
     op.drop_table("work_experiences")
     op.drop_table("educations")

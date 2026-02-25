@@ -40,8 +40,6 @@ class Skill(Base):
         Enum(SkillCategory, name="skill_category_enum", values_callable=lambda e: [m.value for m in e]),
         nullable=False,
     )
-    proficiency_level: Mapped[str | None] = mapped_column(String(50), nullable=True)
-
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

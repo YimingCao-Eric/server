@@ -1,17 +1,20 @@
 # AI Job Hunting Assistant — Server
 
-Backend service for the AI Job Hunting Assistant. This module implements the **User Professional Profile** schema using Python, PostgreSQL, SQLAlchemy 2.0 (async), and Alembic.
+Backend service for the AI Job Hunting Assistant. This module implements the **User Professional Profile** API using Python, FastAPI, PostgreSQL, SQLAlchemy 2.0 (async), and Alembic.
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Language | Python 3.11+ |
-| Database | PostgreSQL |
+| Framework | FastAPI (async) |
+| Validation | Pydantic v2 |
+| Database | PostgreSQL 16 |
 | ORM | SQLAlchemy 2.0 (async style) |
 | Migrations | Alembic |
 | Driver (async) | asyncpg |
 | Driver (sync/migrations) | psycopg2-binary |
+| Containerization | Docker Compose |
 
 ## Project Structure
 
@@ -20,23 +23,46 @@ server/
 ├── alembic.ini                  # Alembic configuration
 ├── requirements.txt             # Python dependencies
 ├── .env.example                 # Environment variable template
+├── Dockerfile                   # App container image
+├── docker-compose.yml           # App + Postgres orchestration
+├── .dockerignore                # Docker build exclusions
 ├── alembic/                     # Database migrations
 │   ├── env.py
 │   ├── script.py.mako
 │   └── versions/
 │       └── 001_create_user_profile_tables.py
 └── app/                         # Application package
+    ├── main.py                  # FastAPI entry point
     ├── db/                      # Database infrastructure
     │   ├── base.py
     │   └── session.py
-    └── models/                  # SQLAlchemy ORM models
-        ├── user.py
-        ├── education.py
-        ├── work_experience.py
-        └── skill.py
+    ├── models/                  # SQLAlchemy ORM models
+    │   ├── user.py
+    │   ├── education.py
+    │   ├── work_experience.py
+    │   ├── project.py
+    │   └── skill.py
+    ├── schemas/                 # Pydantic request/response schemas
+    │   └── profile.py
+    ├── services/                # Business logic layer
+    │   └── profile_service.py
+    └── routers/                 # FastAPI route handlers
+        └── profile_router.py
 ```
 
-## Quick Start
+## Quick Start (Docker)
+
+```bash
+docker-compose up --build
+```
+
+This starts PostgreSQL and the FastAPI app. Alembic migrations run automatically on boot.
+
+- **API:** http://localhost:8000
+- **Swagger UI:** http://localhost:8000/docs
+- **Health check:** http://localhost:8000/health
+
+## Quick Start (Local)
 
 ```bash
 # 1. Install dependencies
@@ -50,6 +76,73 @@ createdb job_hunting_assistant
 
 # 4. Run migrations
 alembic upgrade head
+
+# 5. Start the server
+uvicorn app.main:app --reload --port 8000
+```
+
+## API Endpoints
+
+| Method | Path | Status | Description |
+|---|---|---|---|
+| `POST` | `/profiles` | `201` | Create a full user profile |
+| `GET` | `/profiles/{id}` | `200` | Get profile by ID |
+| `PUT` | `/profiles/{id}` | `200` | Update profile (replace child lists) |
+| `DELETE` | `/profiles/{id}` | `200` | Delete profile (cascade) |
+
+## Example Postman Request — POST /profiles
+
+```json
+{
+  "name": "Jane Doe",
+  "email": "jane.doe@example.com",
+  "phone": "+1-416-555-0100",
+  "linkedin_url": "https://linkedin.com/in/janedoe",
+  "github_url": "https://github.com/janedoe",
+  "personal_website": "https://janedoe.dev",
+  "location_country": "Canada",
+  "location_province_state": "Ontario",
+  "location_city": "Toronto",
+  "educations": [
+    {
+      "institution_name": "University of Toronto",
+      "degree": "Bachelor of Science",
+      "field_of_study": "Computer Science",
+      "address_country": "Canada",
+      "address_province_state": "Ontario",
+      "address_city": "Toronto",
+      "start_date": "2018-09",
+      "graduate_date": "2022-06",
+      "gpa": "3.8",
+      "description": "Dean's list, capstone project on NLP"
+    }
+  ],
+  "work_experiences": [
+    {
+      "company_name": "Google",
+      "job_title": "Software Engineer",
+      "location_country": "United States",
+      "location_province_state": "California",
+      "location_city": "Mountain View",
+      "start_date": "2022-07",
+      "end_date": null,
+      "description": "Full-stack development on Cloud Platform"
+    }
+  ],
+  "projects": [
+    {
+      "project_title": "AI Job Hunting Assistant",
+      "start_date": "2025-01",
+      "end_date": null,
+      "description": "End-to-end career strategist platform"
+    }
+  ],
+  "skills": [
+    { "skill_name": "Python", "skill_category": "language" },
+    { "skill_name": "FastAPI", "skill_category": "framework" },
+    { "skill_name": "PostgreSQL", "skill_category": "database" }
+  ]
+}
 ```
 
 ## Database Schema (ER Diagram)
@@ -88,13 +181,24 @@ alembic upgrade head
 │              │        └────────────────────┘
 │              │
 │              │        ┌────────────────────┐
+│              │───1:N──│     projects        │
+│              │        │────────────────────│
+│              │        │ id (PK)            │
+│              │        │ user_id (FK)       │
+│              │        │ project_title      │
+│              │        │ start_date         │
+│              │        │ end_date           │
+│              │        │ description        │
+│              │        │ created_at         │
+│              │        └────────────────────┘
+│              │
+│              │        ┌────────────────────┐
 │              │───1:N──│      skills         │
 │              │        │────────────────────│
 │              │        │ id (PK)            │
 │              │        │ user_id (FK)       │
 │              │        │ skill_name         │
 │              │        │ skill_category     │
-│              │        │ proficiency_level  │
 │              │        │ created_at         │
 └──────────────┘        └────────────────────┘
 ```
@@ -103,13 +207,16 @@ alembic upgrade head
 
 | File | Description |
 |---|---|
-| [`alembic.ini`](alembic.ini) | Alembic configuration file. Defines the migration script location, the default database URL (`postgresql+psycopg2://...`), and logging settings for Alembic and SQLAlchemy. |
-| [`requirements.txt`](requirements.txt) | Python dependency list. Pins minimum versions for `sqlalchemy[asyncio]`, `asyncpg`, `alembic`, `psycopg2-binary`, and `python-dotenv`. |
-| [`.env.example`](.env.example) | Template for environment variables. Contains `DATABASE_URL` (async, for the app) and `DATABASE_URL_SYNC` (sync, for Alembic migrations). Copy to `.env` and fill in real credentials. |
+| [`alembic.ini`](alembic.ini) | Alembic configuration file. Defines the migration script location, the default database URL, and logging settings. |
+| [`requirements.txt`](requirements.txt) | Python dependency list — FastAPI, uvicorn, Pydantic, SQLAlchemy, asyncpg, Alembic, psycopg2-binary, python-dotenv. |
+| [`.env.example`](.env.example) | Template for environment variables. Contains `DATABASE_URL` (async) and `DATABASE_URL_SYNC` (sync for Alembic). |
+| [`Dockerfile`](Dockerfile) | Builds the app container image. Runs Alembic migrations on startup then launches uvicorn. |
+| [`docker-compose.yml`](docker-compose.yml) | Orchestrates the FastAPI app and PostgreSQL 16 services. Postgres health-checked before app starts. |
+| [`.dockerignore`](.dockerignore) | Excludes unnecessary files from Docker build context. |
 
 ## Subdirectories
 
 | Directory | Description |
 |---|---|
 | [`alembic/`](alembic/README.md) | Database migration scripts and Alembic runtime configuration. |
-| [`app/`](app/README.md) | Main application package containing database infrastructure and ORM models. |
+| [`app/`](app/README.md) | Main application package — API routes, services, schemas, models, and database infrastructure. |

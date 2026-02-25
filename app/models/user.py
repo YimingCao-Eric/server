@@ -12,6 +12,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.education import Education
+    from app.models.project import Project
     from app.models.skill import Skill
     from app.models.work_experience import WorkExperience
 
@@ -51,6 +52,9 @@ class User(Base):
     )
     work_experiences: Mapped[list[WorkExperience]] = relationship(
         "WorkExperience", back_populates="user", cascade="all, delete-orphan"
+    )
+    projects: Mapped[list[Project]] = relationship(
+        "Project", back_populates="user", cascade="all, delete-orphan"
     )
     skills: Mapped[list[Skill]] = relationship(
         "Skill", back_populates="user", cascade="all, delete-orphan"
