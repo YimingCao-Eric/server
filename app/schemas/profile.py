@@ -119,6 +119,7 @@ class WorkExperienceCreate(BaseModel):
     location_city: str | None = Field(None, max_length=100)
     start_date: date
     end_date: date | None = None
+    is_remote: bool = False
     description: str
 
     @field_validator("start_date", "end_date", mode="before")
@@ -144,6 +145,7 @@ class WorkExperienceCreate(BaseModel):
                 "location_city": "Mountain View",
                 "start_date": "2022-07",
                 "end_date": None,
+                "is_remote": False,
                 "description": "Full-stack development on Cloud Platform",
             }
         }
@@ -158,6 +160,7 @@ class WorkExperienceUpdate(BaseModel):
     location_city: str | None = Field(None, max_length=100)
     start_date: date | None = None
     end_date: date | None = None
+    is_remote: bool | None = None
     description: str | None = None
 
     @field_validator("start_date", "end_date", mode="before")
@@ -179,6 +182,7 @@ class WorkExperienceResponse(BaseModel):
     location_city: str | None
     start_date: date
     end_date: date | None
+    is_remote: bool
     description: str
     created_at: datetime
 

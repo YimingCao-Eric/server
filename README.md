@@ -30,7 +30,8 @@ server/
 │   ├── env.py
 │   ├── script.py.mako
 │   └── versions/
-│       └── 001_create_user_profile_tables.py
+│       ├── 001_create_user_profile_tables.py
+│       └── 002_add_is_remote_to_work_experiences.py
 └── app/                         # Application package
     ├── main.py                  # FastAPI entry point
     ├── db/                      # Database infrastructure
@@ -93,41 +94,41 @@ uvicorn app.main:app --reload --port 8000
 
 | Method | Path | Status | Description |
 |---|---|---|---|
-| `GET` | `/profiles` | `200` | List all profiles (summary: id + email only) |
+| `GET` | `/profiles` | `200` | List all profiles (summary: id + email) |
 | `POST` | `/profiles` | `201` | Create a full user profile |
-| `GET` | `/profiles/{id}` | `200` | Get profile by ID (full nested data) |
+| `GET` | `/profiles/{id}` | `200` | Get profile by ID (nested response) |
 | `PUT` | `/profiles/{id}` | `200` | Update profile (replace child lists) |
 | `DELETE` | `/profiles/{id}` | `200` | Delete profile (cascade) |
 
-### Educations
+### Educations (nested under profile)
 
 | Method | Path | Status | Description |
 |---|---|---|---|
-| `GET` | `/profiles/{id}/educations` | `200` | List all educations for a profile |
+| `GET` | `/profiles/{id}/educations` | `200` | List all educations |
 | `POST` | `/profiles/{id}/educations` | `201` | Add an education entry |
-| `GET` | `/profiles/{id}/educations/{edu_id}` | `200` | Get a single education entry |
-| `PUT` | `/profiles/{id}/educations/{edu_id}` | `200` | Update an education entry |
-| `DELETE` | `/profiles/{id}/educations/{edu_id}` | `200` | Delete an education entry |
+| `GET` | `/profiles/{id}/educations/{eid}` | `200` | Get single education |
+| `PUT` | `/profiles/{id}/educations/{eid}` | `200` | Update education (partial) |
+| `DELETE` | `/profiles/{id}/educations/{eid}` | `200` | Delete education |
 
-### Work Experiences
+### Work Experiences (nested under profile)
 
 | Method | Path | Status | Description |
 |---|---|---|---|
-| `GET` | `/profiles/{id}/work-experiences` | `200` | List all work experiences for a profile |
+| `GET` | `/profiles/{id}/work-experiences` | `200` | List all work experiences |
 | `POST` | `/profiles/{id}/work-experiences` | `201` | Add a work experience entry |
-| `GET` | `/profiles/{id}/work-experiences/{we_id}` | `200` | Get a single work experience entry |
-| `PUT` | `/profiles/{id}/work-experiences/{we_id}` | `200` | Update a work experience entry |
-| `DELETE` | `/profiles/{id}/work-experiences/{we_id}` | `200` | Delete a work experience entry |
+| `GET` | `/profiles/{id}/work-experiences/{wid}` | `200` | Get single work experience |
+| `PUT` | `/profiles/{id}/work-experiences/{wid}` | `200` | Update work experience (partial) |
+| `DELETE` | `/profiles/{id}/work-experiences/{wid}` | `200` | Delete work experience |
 
-### Projects
+### Projects (nested under profile)
 
 | Method | Path | Status | Description |
 |---|---|---|---|
-| `GET` | `/profiles/{id}/projects` | `200` | List all projects for a profile |
+| `GET` | `/profiles/{id}/projects` | `200` | List all projects |
 | `POST` | `/profiles/{id}/projects` | `201` | Add a project entry |
-| `GET` | `/profiles/{id}/projects/{proj_id}` | `200` | Get a single project entry |
-| `PUT` | `/profiles/{id}/projects/{proj_id}` | `200` | Update a project entry |
-| `DELETE` | `/profiles/{id}/projects/{proj_id}` | `200` | Delete a project entry |
+| `GET` | `/profiles/{id}/projects/{pid}` | `200` | Get single project |
+| `PUT` | `/profiles/{id}/projects/{pid}` | `200` | Update project (partial) |
+| `DELETE` | `/profiles/{id}/projects/{pid}` | `200` | Delete project |
 
 ## Example Postman Request — POST /profiles
 
@@ -165,6 +166,7 @@ uvicorn app.main:app --reload --port 8000
       "location_city": "Mountain View",
       "start_date": "2022-07",
       "end_date": null,
+      "is_remote": false,
       "description": "Full-stack development on Cloud Platform"
     }
   ],
@@ -198,8 +200,9 @@ uvicorn app.main:app --reload --port 8000
 │ github_url   │        │ institution_name   │
 │ personal_web │        │ degree             │
 │ location_*   │        │ field_of_study     │
-│ created_at   │        │ start_date         │
-│ updated_at   │        │ graduate_date      │
+│ created_at   │        │ address_*          │
+│ updated_at   │        │ start_date         │
+│              │        │ graduate_date      │
 │              │        │ gpa                │
 │              │        │ description        │
 │              │        │ created_at         │
@@ -215,6 +218,7 @@ uvicorn app.main:app --reload --port 8000
 │              │        │ location_*         │
 │              │        │ start_date         │
 │              │        │ end_date           │
+│              │        │ is_remote          │
 │              │        │ description        │
 │              │        │ created_at         │
 │              │        └────────────────────┘
@@ -247,7 +251,7 @@ uvicorn app.main:app --reload --port 8000
 | File | Description |
 |---|---|
 | [`alembic.ini`](alembic.ini) | Alembic configuration file. Defines the migration script location, the default database URL, and logging settings. |
-| [`requirements.txt`](requirements.txt) | Python dependency list — FastAPI, uvicorn, Pydantic, SQLAlchemy, asyncpg, Alembic, psycopg2-binary, python-dotenv. |
+| [`requirements.txt`](requirements.txt) | Python dependency list — FastAPI, uvicorn, Pydantic (with email validation), SQLAlchemy, asyncpg, Alembic, psycopg2-binary, python-dotenv. |
 | [`.env.example`](.env.example) | Template for environment variables. Contains `DATABASE_URL` (async) and `DATABASE_URL_SYNC` (sync for Alembic). |
 | [`Dockerfile`](Dockerfile) | Builds the app container image. Runs Alembic migrations on startup then launches uvicorn. |
 | [`docker-compose.yml`](docker-compose.yml) | Orchestrates the FastAPI app and PostgreSQL 16 services. Postgres health-checked before app starts. |
