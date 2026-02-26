@@ -26,7 +26,7 @@ Request → Router → Service → SQLAlchemy Models → PostgreSQL
 | File | Description |
 |---|---|
 | [`__init__.py`](__init__.py) | Package marker. Makes `app` importable as a Python package. |
-| [`main.py`](main.py) | FastAPI application entry point. Creates the `FastAPI` instance, includes the profile router, and exposes a `/health` endpoint. Run with `uvicorn app.main:app`. |
+| [`main.py`](main.py) | FastAPI application entry point. Creates the `FastAPI` instance, includes all routers (profile, education, work experience, project), and exposes a `/health` endpoint. Run with `uvicorn app.main:app`. |
 
 ## Subdirectories
 

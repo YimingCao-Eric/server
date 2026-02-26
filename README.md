@@ -45,9 +45,15 @@ server/
     ├── schemas/                 # Pydantic request/response schemas
     │   └── profile.py
     ├── services/                # Business logic layer
-    │   └── profile_service.py
+    │   ├── profile_service.py
+    │   ├── education_service.py
+    │   ├── work_experience_service.py
+    │   └── project_service.py
     └── routers/                 # FastAPI route handlers
-        └── profile_router.py
+        ├── profile_router.py
+        ├── education_router.py
+        ├── work_experience_router.py
+        └── project_router.py
 ```
 
 ## Quick Start (Docker)
@@ -83,12 +89,45 @@ uvicorn app.main:app --reload --port 8000
 
 ## API Endpoints
 
+### Profiles
+
 | Method | Path | Status | Description |
 |---|---|---|---|
+| `GET` | `/profiles` | `200` | List all profiles (summary: id + email only) |
 | `POST` | `/profiles` | `201` | Create a full user profile |
-| `GET` | `/profiles/{id}` | `200` | Get profile by ID |
+| `GET` | `/profiles/{id}` | `200` | Get profile by ID (full nested data) |
 | `PUT` | `/profiles/{id}` | `200` | Update profile (replace child lists) |
 | `DELETE` | `/profiles/{id}` | `200` | Delete profile (cascade) |
+
+### Educations
+
+| Method | Path | Status | Description |
+|---|---|---|---|
+| `GET` | `/profiles/{id}/educations` | `200` | List all educations for a profile |
+| `POST` | `/profiles/{id}/educations` | `201` | Add an education entry |
+| `GET` | `/profiles/{id}/educations/{edu_id}` | `200` | Get a single education entry |
+| `PUT` | `/profiles/{id}/educations/{edu_id}` | `200` | Update an education entry |
+| `DELETE` | `/profiles/{id}/educations/{edu_id}` | `200` | Delete an education entry |
+
+### Work Experiences
+
+| Method | Path | Status | Description |
+|---|---|---|---|
+| `GET` | `/profiles/{id}/work-experiences` | `200` | List all work experiences for a profile |
+| `POST` | `/profiles/{id}/work-experiences` | `201` | Add a work experience entry |
+| `GET` | `/profiles/{id}/work-experiences/{we_id}` | `200` | Get a single work experience entry |
+| `PUT` | `/profiles/{id}/work-experiences/{we_id}` | `200` | Update a work experience entry |
+| `DELETE` | `/profiles/{id}/work-experiences/{we_id}` | `200` | Delete a work experience entry |
+
+### Projects
+
+| Method | Path | Status | Description |
+|---|---|---|---|
+| `GET` | `/profiles/{id}/projects` | `200` | List all projects for a profile |
+| `POST` | `/profiles/{id}/projects` | `201` | Add a project entry |
+| `GET` | `/profiles/{id}/projects/{proj_id}` | `200` | Get a single project entry |
+| `PUT` | `/profiles/{id}/projects/{proj_id}` | `200` | Update a project entry |
+| `DELETE` | `/profiles/{id}/projects/{proj_id}` | `200` | Delete a project entry |
 
 ## Example Postman Request — POST /profiles
 

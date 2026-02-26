@@ -70,6 +70,26 @@ class EducationCreate(BaseModel):
     )
 
 
+class EducationUpdate(BaseModel):
+    institution_name: str | None = Field(None, max_length=255)
+    degree: str | None = Field(None, max_length=255)
+    field_of_study: str | None = Field(None, max_length=255)
+    address_country: str | None = Field(None, max_length=100)
+    address_province_state: str | None = Field(None, max_length=100)
+    address_city: str | None = Field(None, max_length=100)
+    start_date: date | None = None
+    graduate_date: date | None = None
+    gpa: str | None = Field(None, max_length=20)
+    description: str | None = None
+
+    @field_validator("start_date", "graduate_date", mode="before")
+    @classmethod
+    def _parse_date(cls, v: str | date | None) -> date | None:
+        if v is None:
+            return None
+        return _parse_month(v)
+
+
 class EducationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -130,6 +150,24 @@ class WorkExperienceCreate(BaseModel):
     )
 
 
+class WorkExperienceUpdate(BaseModel):
+    company_name: str | None = Field(None, max_length=255)
+    job_title: str | None = Field(None, max_length=255)
+    location_country: str | None = Field(None, max_length=100)
+    location_province_state: str | None = Field(None, max_length=100)
+    location_city: str | None = Field(None, max_length=100)
+    start_date: date | None = None
+    end_date: date | None = None
+    description: str | None = None
+
+    @field_validator("start_date", "end_date", mode="before")
+    @classmethod
+    def _parse_date(cls, v: str | date | None) -> date | None:
+        if v is None:
+            return None
+        return _parse_month(v)
+
+
 class WorkExperienceResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -178,6 +216,20 @@ class ProjectCreate(BaseModel):
             }
         }
     )
+
+
+class ProjectUpdate(BaseModel):
+    project_title: str | None = Field(None, max_length=255)
+    start_date: date | None = None
+    end_date: date | None = None
+    description: str | None = None
+
+    @field_validator("start_date", "end_date", mode="before")
+    @classmethod
+    def _parse_date(cls, v: str | date | None) -> date | None:
+        if v is None:
+            return None
+        return _parse_month(v)
 
 
 class ProjectResponse(BaseModel):
@@ -323,6 +375,13 @@ class ProfileUpdate(BaseModel):
         if v is not None and len(v) == 0:
             raise ValueError("educations list cannot be empty when provided")
         return v
+
+
+class ProfileSummaryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    email: str
 
 
 class ProfileResponse(BaseModel):

@@ -37,6 +37,12 @@ async def _load_user(session: AsyncSession, user_id: uuid.UUID) -> User:
     return user
 
 
+async def list_profiles(session: AsyncSession) -> list[User]:
+    stmt = select(User).order_by(User.created_at.desc())
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
+
+
 async def create_profile(session: AsyncSession, data: ProfileCreate) -> User:
     user = User(
         name=data.name,

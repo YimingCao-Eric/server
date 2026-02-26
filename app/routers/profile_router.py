@@ -6,10 +6,22 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
-from app.schemas.profile import ProfileCreate, ProfileResponse, ProfileUpdate
+from app.schemas.profile import ProfileCreate, ProfileResponse, ProfileSummaryResponse, ProfileUpdate
 from app.services import profile_service
 
 router = APIRouter(prefix="/profiles", tags=["Profiles"])
+
+
+@router.get(
+    "",
+    response_model=list[ProfileSummaryResponse],
+    summary="List all user profiles",
+)
+async def list_profiles(
+    session: AsyncSession = Depends(get_session),
+) -> list[ProfileSummaryResponse]:
+    users = await profile_service.list_profiles(session)
+    return [ProfileSummaryResponse.model_validate(u) for u in users]
 
 
 @router.post(
