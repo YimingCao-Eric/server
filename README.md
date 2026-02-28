@@ -1,6 +1,6 @@
 # AI Job Hunting Assistant — Server
 
-Backend service for the AI Job Hunting Assistant. This module implements the **User Professional Profile** API using Python, FastAPI, PostgreSQL, SQLAlchemy 2.0 (async), and Alembic.
+Backend service for the AI Job Hunting Assistant. This module implements the **User Professional Profile** API and the **Job Ingestion** pipeline using Python, FastAPI, PostgreSQL, SQLAlchemy 2.0 (async), and Alembic.
 
 ## Tech Stack
 
@@ -31,7 +31,8 @@ server/
 │   ├── script.py.mako
 │   └── versions/
 │       ├── 001_create_user_profile_tables.py
-│       └── 002_add_is_remote_to_work_experiences.py
+│       ├── 002_add_is_remote_to_work_experiences.py
+│       └── 003_create_jobs_table.py
 └── app/                         # Application package
     ├── main.py                  # FastAPI entry point
     ├── db/                      # Database infrastructure
@@ -42,19 +43,23 @@ server/
     │   ├── education.py
     │   ├── work_experience.py
     │   ├── project.py
-    │   └── skill.py
+    │   ├── skill.py
+    │   └── job.py
     ├── schemas/                 # Pydantic request/response schemas
-    │   └── profile.py
+    │   ├── profile.py
+    │   └── job_schema.py
     ├── services/                # Business logic layer
     │   ├── profile_service.py
     │   ├── education_service.py
     │   ├── work_experience_service.py
-    │   └── project_service.py
+    │   ├── project_service.py
+    │   └── job_service.py
     └── routers/                 # FastAPI route handlers
         ├── profile_router.py
         ├── education_router.py
         ├── work_experience_router.py
-        └── project_router.py
+        ├── project_router.py
+        └── job_router.py
 ```
 
 ## Quick Start (Docker)
@@ -130,6 +135,12 @@ uvicorn app.main:app --reload --port 8000
 | `PUT` | `/profiles/{id}/projects/{pid}` | `200` | Update project (partial) |
 | `DELETE` | `/profiles/{id}/projects/{pid}` | `200` | Delete project |
 
+### Job Ingestion
+
+| Method | Path | Status | Description |
+|---|---|---|---|
+| `POST` | `/jobs/ingest` | `201` | Ingest a job posting from any external collector |
+
 ## Example Postman Request — POST /profiles
 
 ```json
@@ -183,6 +194,22 @@ uvicorn app.main:app --reload --port 8000
     { "skill_name": "FastAPI", "skill_category": "framework" },
     { "skill_name": "PostgreSQL", "skill_category": "database" }
   ]
+}
+```
+
+## Example Postman Request — POST /jobs/ingest
+
+```json
+{
+  "website": "linkedin",
+  "job_title": "Software Engineer",
+  "company": "Google",
+  "location": "Vancouver, BC",
+  "job_description": "Full original job content here...",
+  "post_datetime": "2026-02-27T10:00:00Z",
+  "source_url": "https://linkedin.com/job/123",
+  "search_keyword": "Software Engineer",
+  "search_location": "Vancouver"
 }
 ```
 
@@ -244,6 +271,30 @@ uvicorn app.main:app --reload --port 8000
 │              │        │ skill_category     │
 │              │        │ created_at         │
 └──────────────┘        └────────────────────┘
+
+
+┌──────────────────────┐
+│    jobs (standalone)  │
+│──────────────────────│
+│ id (PK, UUID)        │
+│ website              │  ← "linkedin", "indeed", "glassdoor"
+│ job_title            │
+│ company              │
+│ location             │
+│ job_description      │
+│ post_datetime        │
+│ source_url (UQ*)     │  ← partial unique where NOT NULL
+│ search_keyword       │
+│ search_location      │
+│ created_at           │
+│──────────────────────│
+│ ix: website          │
+│ ix: job_title        │
+│ ix: company          │
+│ ix: dedup (website,  │
+│     job_title,       │
+│     company)         │
+└──────────────────────┘
 ```
 
 ## Files in This Directory
