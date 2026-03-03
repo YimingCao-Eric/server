@@ -20,6 +20,8 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:password@db:5432/job_hunting_assistant
       DATABASE_URL_SYNC: postgresql+psycopg2://postgres:password@db:5432/job_hunting_assistant
+      SCRAPER_WEBHOOK_LINKEDIN: http://host.docker.internal:5678/webhook/linkedin-scrape
+      BACKEND_BASE_URL: http://host.docker.internal:8000
     ports:
       - "8000:8000"
     depends_on:
