@@ -23,7 +23,7 @@ Request → Router → Service → SQLAlchemy Models → PostgreSQL
 
 **Two domains:**
 - **Profiles** — User professional profile management (CRUD for users, educations, work experiences, projects, skills)
-- **Jobs** — Source-agnostic job posting ingestion from external collectors (OpenClaw, n8n, custom scrapers)
+- **Jobs** — Source-agnostic job posting ingestion and scrape trigger. `/jobs/ingest` accepts postings from external collectors; `/jobs/scrape` triggers scrapers (OpenClaw, n8n, custom) via webhook.
 
 ## Files
 

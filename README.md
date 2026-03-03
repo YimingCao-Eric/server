@@ -47,13 +47,15 @@ server/
     │   └── job.py
     ├── schemas/                 # Pydantic request/response schemas
     │   ├── profile.py
-    │   └── job_schema.py
+    │   ├── job_schema.py
+    │   └── job_scrape_schema.py
     ├── services/                # Business logic layer
     │   ├── profile_service.py
     │   ├── education_service.py
     │   ├── work_experience_service.py
     │   ├── project_service.py
-    │   └── job_service.py
+    │   ├── job_service.py
+    │   └── scrape_service.py
     └── routers/                 # FastAPI route handlers
         ├── profile_router.py
         ├── education_router.py
@@ -135,11 +137,12 @@ uvicorn app.main:app --reload --port 8000
 | `PUT` | `/profiles/{id}/projects/{pid}` | `200` | Update project (partial) |
 | `DELETE` | `/profiles/{id}/projects/{pid}` | `200` | Delete project |
 
-### Job Ingestion
+### Job Ingestion & Scrape Trigger
 
 | Method | Path | Status | Description |
 |---|---|---|---|
 | `POST` | `/jobs/ingest` | `201` | Ingest a job posting from any external collector |
+| `POST` | `/jobs/scrape` | `202` | Trigger external scraping workflow (OpenClaw, n8n, etc.) |
 
 ## Example Postman Request — POST /profiles
 
@@ -196,6 +199,22 @@ uvicorn app.main:app --reload --port 8000
   ]
 }
 ```
+
+## Example Postman Request — POST /jobs/scrape
+
+Triggers an external scraper (e.g. OpenClaw) to search jobs and POST results to `/jobs/ingest`. Returns `202 Accepted` immediately.
+
+```json
+{
+  "website": "linkedin",
+  "job_title": "Software Engineer",
+  "location": "Vancouver, BC",
+  "date_posted_filter": "past_24h",
+  "max_results": 20
+}
+```
+
+Requires env vars: `SCRAPER_WEBHOOK_LINKEDIN` (or `_INDEED`, `_GLASSDOOR`), `BACKEND_BASE_URL`.
 
 ## Example Postman Request — POST /jobs/ingest
 
@@ -302,10 +321,10 @@ uvicorn app.main:app --reload --port 8000
 | File | Description |
 |---|---|
 | [`alembic.ini`](alembic.ini) | Alembic configuration file. Defines the migration script location, the default database URL, and logging settings. |
-| [`requirements.txt`](requirements.txt) | Python dependency list — FastAPI, uvicorn, Pydantic (with email validation), SQLAlchemy, asyncpg, Alembic, psycopg2-binary, python-dotenv. |
-| [`.env.example`](.env.example) | Template for environment variables. Contains `DATABASE_URL` (async) and `DATABASE_URL_SYNC` (sync for Alembic). |
+| [`requirements.txt`](requirements.txt) | Python dependency list — FastAPI, uvicorn, Pydantic (with email validation), SQLAlchemy, asyncpg, Alembic, psycopg2-binary, python-dotenv, httpx. |
+| [`.env.example`](.env.example) | Template for environment variables. Contains `DATABASE_URL`, `DATABASE_URL_SYNC`, scraper webhook URLs (`SCRAPER_WEBHOOK_LINKEDIN`, etc.), and `BACKEND_BASE_URL`. |
 | [`Dockerfile`](Dockerfile) | Builds the app container image. Runs Alembic migrations on startup then launches uvicorn. |
-| [`docker-compose.yml`](docker-compose.yml) | Orchestrates the FastAPI app and PostgreSQL 16 services. Postgres health-checked before app starts. |
+| [`docker-compose.yml`](docker-compose.yml) | Orchestrates the FastAPI app and PostgreSQL 16 services. Postgres health-checked before app starts. Passes scraper webhook and `BACKEND_BASE_URL` env vars to the app. |
 | [`.dockerignore`](.dockerignore) | Excludes unnecessary files from Docker build context. |
 
 ## Subdirectories

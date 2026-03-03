@@ -21,7 +21,7 @@ This package defines the API endpoints. Routers are intentionally thin — they 
 | [`education_router.py`](education_router.py) | Education CRUD endpoints under `/profiles/{id}/educations`. Full CRUD: list, get, create (201), update (partial), delete. |
 | [`work_experience_router.py`](work_experience_router.py) | Work experience CRUD endpoints under `/profiles/{id}/work-experiences`. Full CRUD: list, get, create (201), update (partial), delete. |
 | [`project_router.py`](project_router.py) | Project CRUD endpoints under `/profiles/{id}/projects`. Full CRUD: list, get, create (201), update (partial), delete. |
-| [`job_router.py`](job_router.py) | Job ingestion endpoint. **`POST /jobs/ingest`** → accepts a job posting from any external collector (201). Returns `409` on duplicate. Source-agnostic — works with OpenClaw, n8n, Playwright, or any HTTP client. |
+| [`job_router.py`](job_router.py) | Job endpoints. **`POST /jobs/ingest`** → accepts a job posting from any external collector (201). **`POST /jobs/scrape`** → triggers external scraping workflow via webhook (202). Returns `404` for unsupported website, `503` if scraper is unavailable. Source-agnostic — works with OpenClaw, n8n, Playwright, or any HTTP client. |
 
 ## Endpoint Summary
 
@@ -70,3 +70,4 @@ This package defines the API endpoints. Routers are intentionally thin — they 
 | Method | Path | Status Codes | Description |
 |---|---|---|---|
 | `POST` | `/jobs/ingest` | 201, 400, 409 | Ingest job posting |
+| `POST` | `/jobs/scrape` | 202, 400, 404, 503 | Trigger scrape workflow |
