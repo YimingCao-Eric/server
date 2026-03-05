@@ -1,16 +1,7 @@
-import os
-
-from dotenv import load_dotenv
+from app.core.config import settings
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-load_dotenv()
-
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://postgres:password@localhost:5432/job_hunting_assistant",
-)
-
-engine = create_async_engine(DATABASE_URL, echo=False, future=True)
+engine = create_async_engine(settings.database_url, echo=False, future=True)
 
 async_session_factory = async_sessionmaker(
     bind=engine,

@@ -39,6 +39,17 @@ async def create_profile(
 
 
 @router.get(
+    "/{profile_id}/resume-text",
+    summary="Get plain-text resume for a profile",
+)
+async def get_resume_text(
+    profile_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    return await profile_service.get_resume_text(session, profile_id)
+
+
+@router.get(
     "/{profile_id}",
     response_model=ProfileResponse,
     summary="Get a user profile by ID",

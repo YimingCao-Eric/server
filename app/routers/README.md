@@ -4,70 +4,32 @@ FastAPI route handlers.
 
 ---
 
-**Navigation:** [< Back to app/](../README.md) | [<< Back to Root](../../README.md) | **Siblings:** [db/](../db/README.md) · [models/](../models/README.md) · [schemas/](../schemas/README.md) · [services/](../services/README.md)
+## Project Idea (from [overview.md](../../overview.md))
+
+Routers are the HTTP boundary. They receive requests, inject `get_session`, call services, and return validated responses. All endpoints support the 6-step pipeline: ingest, dedup, match, apply, email scan, reports.
 
 ---
 
-## Purpose
+## Navigation
 
-This package defines the API endpoints. Routers are intentionally thin — they receive the HTTP request, inject the database session via `Depends(get_session)`, call the appropriate service function, and return the response.
+| Direction | Link |
+|-----------|------|
+| **Prev folder** | [../schemas/](schemas/README.md) |
+| **Next folder** | [../services/](services/README.md) |
+| **Siblings** | [core/](../core/README.md) · [db/](../db/README.md) · [models/](../models/README.md) |
+
+---
 
 ## Files
 
 | File | Description |
-|---|---|
-| [`__init__.py`](__init__.py) | Package marker. |
-| [`profile_router.py`](profile_router.py) | Profile CRUD endpoints under `/profiles`. **`GET /profiles`** → list all profiles (summary with id + email). **`POST /profiles`** → creates a full profile (201). **`GET /profiles/{id}`** → returns nested profile (200) or 404. **`PUT /profiles/{id}`** → updates profile and replaces child lists (200). **`DELETE /profiles/{id}`** → deletes profile with cascade (200). |
-| [`education_router.py`](education_router.py) | Education CRUD endpoints under `/profiles/{id}/educations`. Full CRUD: list, get, create (201), update (partial), delete. |
-| [`work_experience_router.py`](work_experience_router.py) | Work experience CRUD endpoints under `/profiles/{id}/work-experiences`. Full CRUD: list, get, create (201), update (partial), delete. |
-| [`project_router.py`](project_router.py) | Project CRUD endpoints under `/profiles/{id}/projects`. Full CRUD: list, get, create (201), update (partial), delete. |
-| [`job_router.py`](job_router.py) | Job endpoints. **`POST /jobs/ingest`** → accepts a job posting from any external collector (201). **`POST /jobs/scrape`** → triggers external scraping workflow via webhook (202). Returns `404` for unsupported website, `503` if scraper is unavailable. Source-agnostic — works with OpenClaw, n8n, Playwright, or any HTTP client. |
-
-## Endpoint Summary
-
-### `/profiles`
-
-| Method | Path | Status Codes | Description |
-|---|---|---|---|
-| `GET` | `/profiles` | 200 | List all profiles (summary) |
-| `POST` | `/profiles` | 201, 400, 409 | Create full profile |
-| `GET` | `/profiles/{id}` | 200, 404 | Get profile by ID |
-| `PUT` | `/profiles/{id}` | 200, 400, 404, 409 | Update profile |
-| `DELETE` | `/profiles/{id}` | 200, 404 | Delete profile |
-
-### `/profiles/{id}/educations`
-
-| Method | Path | Status Codes |
-|---|---|---|
-| `GET` | `.../educations` | 200, 404 |
-| `POST` | `.../educations` | 201, 400, 404 |
-| `GET` | `.../educations/{eid}` | 200, 404 |
-| `PUT` | `.../educations/{eid}` | 200, 400, 404, 422 |
-| `DELETE` | `.../educations/{eid}` | 200, 404 |
-
-### `/profiles/{id}/work-experiences`
-
-| Method | Path | Status Codes |
-|---|---|---|
-| `GET` | `.../work-experiences` | 200, 404 |
-| `POST` | `.../work-experiences` | 201, 400, 404 |
-| `GET` | `.../work-experiences/{wid}` | 200, 404 |
-| `PUT` | `.../work-experiences/{wid}` | 200, 400, 404, 422 |
-| `DELETE` | `.../work-experiences/{wid}` | 200, 404 |
-
-### `/profiles/{id}/projects`
-
-| Method | Path | Status Codes |
-|---|---|---|
-| `GET` | `.../projects` | 200, 404 |
-| `POST` | `.../projects` | 201, 400, 404 |
-| `GET` | `.../projects/{pid}` | 200, 404 |
-| `PUT` | `.../projects/{pid}` | 200, 400, 404, 422 |
-| `DELETE` | `.../projects/{pid}` | 200, 404 |
-
-### `/jobs`
-
-| Method | Path | Status Codes | Description |
-|---|---|---|---|
-| `POST` | `/jobs/ingest` | 201, 400, 409 | Ingest job posting |
-| `POST` | `/jobs/scrape` | 202, 400, 404, 503 | Trigger scrape workflow |
+|------|-------------|
+| [`profile_router.py`](profile_router.py) | Prefix `/profiles`. **`list_profiles()`** — GET / → list. **`create_profile()`** — POST / → 201. **`get_resume_text()`** — GET /{id}/resume-text → {resume_text, token_estimate}. **`get_profile()`** — GET /{id}. **`update_profile()`** — PUT /{id}. **`delete_profile()`** — DELETE /{id}. |
+| [`education_router.py`](education_router.py) | Prefix `/profiles/{profile_id}/educations`. **`list_educations()`**, **`get_education()`**, **`create_education()`**, **`update_education()`**, **`delete_education()`** — full CRUD. |
+| [`work_experience_router.py`](work_experience_router.py) | Prefix `/profiles/{profile_id}/work-experiences`. Same CRUD pattern. |
+| [`project_router.py`](project_router.py) | Prefix `/profiles/{profile_id}/projects`. Same CRUD pattern. |
+| [`skill_router.py`](skill_router.py) | Prefix `/profiles/{profile_id}/skills`. Same CRUD pattern. |
+| [`job_router.py`](job_router.py) | Prefix `/jobs`. **`ingest_job()`** — POST /ingest → 200, {id, already_exists}. **`store_match_result()`** — POST /match-results (OpenClaw write-back). **`run_match()`** — POST /match (Phase 2+ backend LLM). **`get_recommendations()`** — GET /recommendations/{profile_id}. **`get_skill_histogram()`** — GET /skill-histogram. **`trigger_scrape()`** — POST /scrape → 202. |
+| [`application_router.py`](application_router.py) | Prefix `/jobs/applications`. **`create_application()`** — POST / → 201, 409 on duplicate apply_url. **`dedup_urls()`** — POST /dedup → {new_urls, already_applied, total_input, new_count, applied_count}. **`count_applications()`** — GET /count. **`list_application_urls()`** — GET /urls. **`list_applications()`** — GET / ?limit=&offset=. **`get_application()`** — GET /{id}. **`update_application()`** — PUT /{id} (interview/offer/rejected). |
+| [`email_router.py`](email_router.py) | Prefix `/email`. **`scan_email()`** — POST /scan → EmailScanResponse; 503 if Gmail credentials missing. |
+| [`report_router.py`](report_router.py) | Prefix `/reports`. **`store_report()`** — POST /store (OpenClaw write-back; in-memory). **`generate_report()`** — POST /generate (backend LLM; Phase 2+). **`get_latest_report()`** — GET /latest; 404 if none stored. |

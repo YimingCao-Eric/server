@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -51,10 +52,65 @@ class JobIngestRequest(BaseModel):
 
 
 class JobIngestResponse(BaseModel):
+    id: uuid.UUID
+    already_exists: bool
+
+
+class JobMatchResultWrite(BaseModel):
+    job_id: UUID
+    match_level: str
+    # allowed values: fully_matched | half_matched | little_matched | irrelevant
+    match_reason: str
+    extracted_skills: list[str]
+    extracted_education: str
+    # allowed values: bachelor | master | phd | none
+    extracted_yoe: int | None
+    # skipped_reason removed — match_reason already encodes gate name
+
+
+class JobMatchResultResponse(BaseModel):
+    job_id: UUID
+    stored: bool
+    matched_at: datetime
+
+
+class JobMatchRequest(BaseModel):
+    job_ids: list[UUID]  # max 50 - validation can be added
+    profile_id: UUID
+    force_rematch: bool = False
+
+
+class JobMatchResult(BaseModel):
+    job_id: UUID
+    match_level: str
+    match_reason: str
+    already_matched: bool
+    skipped_reason: str | None = None
+
+
+class JobMatchResponse(BaseModel):
+    results: list[JobMatchResult] = Field(default_factory=list)
+    total: int = 0
+    fully_matched: int = 0
+    half_matched: int = 0
+    little_matched: int = 0
+    irrelevant: int = 0
+    skipped: int = 0
+
+
+class JobRecommendation(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: uuid.UUID
-    website: str
+    id: UUID
     job_title: str
     company: str
-    created_at: datetime
+    location: str
+    source_url: str | None
+    match_level: str
+    match_reason: str
+    post_datetime: datetime | None
+
+
+class SkillHistogramItem(BaseModel):
+    skill: str
+    count: int

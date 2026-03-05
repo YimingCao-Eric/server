@@ -282,6 +282,21 @@ class SkillResponse(BaseModel):
     created_at: datetime
 
 
+class SkillUpdate(BaseModel):
+    skill_name: str | None = Field(None, max_length=100)
+    skill_category: str | None = Field(None, max_length=50)
+
+    @field_validator("skill_category")
+    @classmethod
+    def _validate_category(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        allowed = {"language", "framework", "database", "tooling", "machine_learning", "soft_skill"}
+        if v not in allowed:
+            raise ValueError(f"skill_category must be one of {sorted(allowed)}")
+        return v
+
+
 # ---------------------------------------------------------------------------
 # Profile (top-level aggregate)
 # ---------------------------------------------------------------------------

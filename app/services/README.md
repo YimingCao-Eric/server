@@ -4,22 +4,34 @@ Business logic and database transaction management.
 
 ---
 
-**Navigation:** [< Back to app/](../README.md) | [<< Back to Root](../../README.md) | **Siblings:** [db/](../db/README.md) · [models/](../models/README.md) · [schemas/](../schemas/README.md) · [routers/](../routers/README.md)
+## Project Idea (from [overview.md](../../overview.md))
+
+Services implement the 6-step pipeline logic: ingest jobs, dedup URLs, store match results, manage applications, scan email, generate/store reports. All DB operations and transactions live here; routers stay thin.
 
 ---
 
-## Purpose
+## Navigation
 
-This package contains the service layer — all business logic sits here, keeping routers thin. Services receive an `AsyncSession` and Pydantic schemas, perform database operations within transactions, and raise `HTTPException` on errors.
+| Direction | Link |
+|-----------|------|
+| **Prev folder** | [../routers/](routers/README.md) |
+| **Next folder** | [../ (app)](../README.md) — *services is last in app chain* |
+| **Siblings** | [core/](../core/README.md) · [db/](../db/README.md) · [models/](../models/README.md) · [schemas/](../schemas/README.md) · [routers/](../routers/README.md) |
+
+---
 
 ## Files
 
 | File | Description |
-|---|---|
-| [`__init__.py`](__init__.py) | Package marker. |
-| [`profile_service.py`](profile_service.py) | Top-level profile operations. **`list_profiles()`** — returns all users ordered by creation date. **`create_profile()`** — inserts a `User` and all child records (educations, work experiences, projects, skills) in a single transaction; rolls back and returns `409` on duplicate email. **`get_profile()`** — loads a user with all relationships via `selectinload`; returns `404` if not found. **`update_profile()`** — updates scalar user fields and replaces child lists (clear + re-insert) in one transaction. **`delete_profile()`** — deletes the user; cascade removes all children. |
-| [`education_service.py`](education_service.py) | Individual education CRUD operations scoped to a profile. **`list_educations()`** — returns all educations for a profile, ordered by `start_date` descending. **`create_education()`** — adds a single education entry. **`update_education()`** — partial update using `exclude_unset=True`, validates `graduate_date >= start_date` after applying changes. **`delete_education()`** — removes a single education entry. |
-| [`work_experience_service.py`](work_experience_service.py) | Individual work experience CRUD scoped to a profile. Same pattern as education_service. Supports the `is_remote` field. Validates `end_date >= start_date` on update. |
-| [`project_service.py`](project_service.py) | Individual project CRUD scoped to a profile. Same pattern as education_service. Validates `end_date >= start_date` on update. |
-| [`job_service.py`](job_service.py) | Job ingestion logic. **`ingest_job()`** — validates uniqueness using two-tier deduplication: if `source_url` is provided, checks for an existing record with the same URL; otherwise falls back to checking the `(website, job_title, company)` composite. Returns `409 Conflict` on duplicate. Inserts the job in a transaction with rollback on failure. Source-agnostic — no coupling to any specific crawling tool. |
-| [`scrape_service.py`](scrape_service.py) | Scrape trigger logic. **`trigger_scrape()`** — validates that the website is supported (linkedin, indeed, glassdoor), resolves webhook URL from env (`SCRAPER_WEBHOOK_LINKEDIN`, etc.), POSTs a JSON payload (job_title, location, date_posted_filter, max_results, ingest_callback_url) via async httpx. Returns `404` if website unsupported or not configured; `503` if the scraper is unreachable or times out. No scraping logic in the backend. |
+|------|-------------|
+| [`profile_service.py`](profile_service.py) | **`list_profiles()`** — all users by created_at. **`create_profile()`** — insert User + children in one transaction; 409 on duplicate email. **`get_profile()`** — load user with selectinload(educations, work_experiences, projects, skills); 404 if not found. **`update_profile()`** — update scalar fields, replace child lists. **`delete_profile()`** — delete user (cascade). **`get_resume_text()`** — build condensed resume text + token_estimate for OpenClaw (≤500 tokens). |
+| [`education_service.py`](education_service.py) | **`list_educations()`**, **`get_education()`**, **`create_education()`**, **`update_education()`**, **`delete_education()`** — CRUD scoped to profile_id. Validates graduate_date >= start_date. |
+| [`work_experience_service.py`](work_experience_service.py) | Same CRUD pattern for work experiences. Validates end_date >= start_date. |
+| [`project_service.py`](project_service.py) | Same CRUD pattern for projects. |
+| [`skill_service.py`](skill_service.py) | Same CRUD pattern for skills. |
+| [`job_service.py`](job_service.py) | **`_find_duplicate()`** — by source_url or (website, job_title, company). **`ingest_job()`** — dedup then insert; returns (job, already_exists). **`store_match_result()`** — write OpenClaw match data onto jobs row; 404 if job not found. |
+| [`scrape_service.py`](scrape_service.py) | **`_get_webhook_url()`** — resolve webhook from env by website. **`trigger_scrape()`** — POST payload (job_title, location, date_posted_filter, max_results, ingest_callback_url) to webhook; 404 if not configured, 503 if unreachable. |
+| [`application_service.py`](application_service.py) | **`create_application()`** — insert; ValueError on duplicate apply_url. **`get_application()`** — by id; ValueError if not found. **`list_application_urls()`** — all apply_urls for fallback dedup. **`dedup_urls()`** — single .in_() query; returns (new_urls, applied_urls). **`list_applications()`** — paginated by date desc. **`count_applications()`** — total count. **`update_application()`** — patch interview/offer/rejected. **`delete_application()`** — remove by id. |
+| [`email_service.py`](email_service.py) | **`scan_inbox()`** — Gmail OAuth2, read-only; classify emails (interview/offer/rejection); match to applications by sender/domain; update flags; return EmailScanResponse. Raises RuntimeError if credentials missing. |
+| [`matching_service.py`](matching_service.py) | **`_extract_jd_fields()`** — LLM extraction (skill_set, education_requirement, yoe_required). **`_education_gate()`** — PhD → skip. **`_get_profile_yoe()`** — sum months from work_experiences. **`run_match_pipeline()`** — for job_ids: extract → gates → keyword prefilter → LLM score → store. **`get_recommendations()`** — fully/half matched jobs. **`get_skill_histogram()`** — skill frequencies across jobs. Phase 2+ only (requires ANTHROPIC_API_KEY). |
+| [`report_service.py`](report_service.py) | **`generate_report()`** — fetch last 100 applications, build summary, call Claude Sonnet for weekly report. Returns ReportResponse. Raises RuntimeError on failure. Phase 2+ only. |

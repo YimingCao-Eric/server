@@ -4,35 +4,48 @@ Individual database migration revision scripts.
 
 ---
 
-**Navigation:** [< Back to alembic/](../README.md) | [<< Back to Root](../../README.md)
+## Project Idea (from [overview.md](../../overview.md))
+
+Each file is a single migration. Revisions form a linked chain (`down_revision`). Migrations create and evolve the schema for the 6-step pipeline: users/profile tables, jobs, job_applications, matching columns.
 
 ---
 
-## Purpose
+## Navigation
 
-Each file in this directory represents a single migration revision. Revisions form a linked chain — each one knows its predecessor (`down_revision`) so Alembic can apply or rollback them in order.
+| Direction | Link |
+|-----------|------|
+| **Prev folder** | [../ (alembic)](../README.md) |
+| **Next folder** | [../../ (Root)](../../README.md) — *versions is leaf* |
+| **Siblings** | None (leaf directory) |
+
+---
 
 ## Files
 
 | File | Description |
-|---|---|
-| [`__init__.py`](__init__.py) | Package marker. Empty file. |
-| [`001_create_user_profile_tables.py`](001_create_user_profile_tables.py) | **Initial migration.** Creates the full User Professional Profile schema: `users`, `educations`, `work_experiences`, `projects`, and `skills` tables. Also creates the `skill_category_enum` PostgreSQL ENUM type. Defines all primary keys (UUID), foreign keys (`ON DELETE CASCADE`), unique constraints (`email`), check constraints (`graduate_date >= start_date`, `end_date >= start_date`), and indexes (`email`, `user_id`, `company_name`, `skill_name`). The `downgrade()` drops all five tables and the enum in reverse order. |
-| [`002_add_is_remote_to_work_experiences.py`](002_add_is_remote_to_work_experiences.py) | Adds `is_remote` Boolean column to `work_experiences` table with a server default of `false`. |
-| [`003_create_jobs_table.py`](003_create_jobs_table.py) | Creates the standalone `jobs` table for external job posting ingestion. Columns: `website`, `job_title`, `company`, `location`, `job_description`, `post_datetime`, `source_url`, `search_keyword`, `search_location`, `created_at`. Indexes: `website`, `job_title`, `company`, partial unique on `source_url` (where NOT NULL), composite dedup `(website, job_title, company)`. |
+|------|-------------|
+| [`001_create_user_profile_tables.py`](001_create_user_profile_tables.py) | Creates `users`, `educations`, `work_experiences`, `projects`, `skills`, `skill_category_enum`. PKs, FKs (CASCADE), unique email, check constraints. |
+| [`002_add_is_remote_to_work_experiences.py`](002_add_is_remote_to_work_experiences.py) | Adds `is_remote` Boolean to `work_experiences`, default false. |
+| [`003_create_jobs_table.py`](003_create_jobs_table.py) | Creates `jobs` table: website, job_title, company, location, job_description, post_datetime, source_url, search_keyword, search_location, created_at. Indexes: website, job_title, company, source_url (partial unique), dedup composite. |
+| [`004_add_updated_at_to_jobs.py`](004_add_updated_at_to_jobs.py) | Adds `updated_at` DateTime to `jobs`. |
+| [`005_add_matching_columns_to_jobs.py`](005_add_matching_columns_to_jobs.py) | Adds match_level, match_reason, matched_at, is_active, extracted_yoe, extracted_skills, extracted_education (Text), raw_description_hash. Indexes on match_level, raw_description_hash, is_active. |
+| [`006_create_job_applications_table.py`](006_create_job_applications_table.py) | Creates `job_applications`: job_title, company_name, apply_url (unique), date_year/month/day, job_description, yoe, skill_set, interview, offer, rejected, created_at, updated_at. Check constraints on date_month, date_day. |
+| [`007_create_job_hunt_sessions_table.py`](007_create_job_hunt_sessions_table.py) | Creates `job_hunt_sessions` (created then removed in 008). |
+| [`008_remove_job_hunt_sessions.py`](008_remove_job_hunt_sessions.py) | Drops `job_hunt_sessions` — premature feature removed. |
+| [`009_fix_extracted_education_type.py`](009_fix_extracted_education_type.py) | Alters `extracted_education` from Text to VARCHAR(20). |
+
+---
 
 ## Revision Chain
 
 ```
-(base) ──> 001_create_user_profile_tables ──> 002_add_is_remote ──> 003_create_jobs_table
+(base) → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 (head)
 ```
 
-## Adding New Migrations
+---
 
-After modifying models in `app/models/`, generate a new revision:
+## Adding New Migrations
 
 ```bash
 alembic revision --autogenerate -m "describe your change"
 ```
-
-The new file will appear here with the next revision ID, linked to `003` as its `down_revision`.

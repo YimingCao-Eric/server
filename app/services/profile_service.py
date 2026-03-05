@@ -139,3 +139,89 @@ async def delete_profile(session: AsyncSession, user_id: uuid.UUID) -> None:
     user = await _load_user(session, user_id)
     await session.delete(user)
     await session.commit()
+
+
+async def get_resume_text(
+    session: AsyncSession, profile_id: uuid.UUID
+) -> dict[str, str | int]:
+    from datetime import date
+
+    user = await _load_user(session, profile_id)
+    parts: list[str] = []
+
+    loc_parts = [
+        user.location_city,
+        user.location_province_state,
+        user.location_country,
+    ]
+    location = ", ".join(p for p in loc_parts if p)
+
+    parts.append(f"Name: {user.name}")
+    parts.append(f"Email: {user.email}")
+    parts.append(f"Location: {location}")
+    parts.append("")
+
+    if user.skills:
+        skill_names = ", ".join(s.skill_name for s in user.skills)
+        parts.append(f"Skills: {skill_names}")
+        parts.append("")
+
+    if user.work_experiences:
+        parts.append("Experience:")
+        sorted_we = sorted(
+            user.work_experiences,
+            key=lambda w: w.start_date,
+            reverse=True,
+        )
+        for w in sorted_we:
+            start_str = w.start_date.strftime("%Y-%m") if w.start_date else ""
+            end_str = (
+                w.end_date.strftime("%Y-%m") if w.end_date else "present"
+            )
+            desc = (w.description or "")[:100]
+            parts.append(
+                f"  - {w.job_title} @ {w.company_name} ({start_str} – {end_str})"
+            )
+            parts.append(f"    {desc}")
+        parts.append("")
+
+    if user.educations:
+        parts.append("Education:")
+        for e in user.educations:
+            grad_str = (
+                e.graduate_date.strftime("%Y-%m")
+                if e.graduate_date
+                else ""
+            )
+            parts.append(
+                f"  - {e.degree}, {e.field_of_study} — {e.institution_name} ({grad_str})"
+            )
+        parts.append("")
+
+    if user.projects:
+        parts.append("Projects:")
+        for p in user.projects:
+            start_str = p.start_date.strftime("%Y-%m") if p.start_date else ""
+            end_str = (
+                p.end_date.strftime("%Y-%m") if p.end_date else "present"
+            )
+            desc = (p.description or "")[:80]
+            parts.append(
+                f"  - {p.project_title} ({start_str} – {end_str}): {desc}"
+            )
+        parts.append("")
+
+    today = date.today()
+    total_months = 0
+    for w in user.work_experiences:
+        if w.start_date:
+            end = w.end_date or today
+            total_months += (end.year - w.start_date.year) * 12 + (
+                end.month - w.start_date.month
+            )
+    yoe = round(total_months / 12, 1) if total_months else 0
+    parts.append(f"YOE: {yoe} years professional")
+
+    resume_text = "\n".join(parts)
+    token_estimate = len(resume_text) // 4
+    return {"resume_text": resume_text, "token_estimate": token_estimate}

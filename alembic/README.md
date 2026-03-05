@@ -4,43 +4,45 @@ Database migration management powered by [Alembic](https://alembic.sqlalchemy.or
 
 ---
 
-**Navigation:** [< Back to Root](../README.md) | **Sibling:** [app/](../app/README.md)
+## Project Idea (from [overview.md](../overview.md))
+
+Migrations evolve the PostgreSQL schema incrementally. The backend uses migrations 001–009 to create and evolve tables: users, educations, work_experiences, projects, skills, jobs, job_applications. The backend never changes between phases; schema stays stable.
 
 ---
 
-## Purpose
+## Navigation
 
-This directory contains everything Alembic needs to generate, store, and execute database migrations against PostgreSQL. Migrations are version-controlled Python scripts that evolve the schema incrementally.
+| Direction | Link |
+|-----------|------|
+| **Prev folder** | [../ (Root)](../README.md) |
+| **Next folder** | [versions/](versions/README.md) |
+| **Sibling** | [app/](../app/README.md) · [scripts/](../scripts/README.md) |
+
+---
 
 ## Files
 
 | File | Description |
-|---|---|
-| [`__init__.py`](__init__.py) | Package marker. Empty file that allows Python to treat this directory as a module. |
-| [`env.py`](env.py) | Alembic runtime environment. Loads the SQLAlchemy `Base.metadata` from `app.db.base` and imports all models (`User`, `Education`, `WorkExperience`, `Skill`) so autogenerate can detect schema changes. Reads `DATABASE_URL_SYNC` from `.env` to override the default connection string. Supports both **offline** (SQL script generation) and **online** (direct database connection) migration modes. |
-| [`script.py.mako`](script.py.mako) | Mako template used by `alembic revision --autogenerate` to generate new migration files. Defines the boilerplate structure: revision ID, dependency chain, and `upgrade()`/`downgrade()` function stubs. |
+|------|-------------|
+| [`env.py`](env.py) | **Alembic runtime environment.** Loads `Base.metadata` from `app.db.base`; imports all models (User, Education, WorkExperience, Project, Skill, Job, JobApplication) so autogenerate detects schema. Reads `DATABASE_URL_SYNC` from `.env`. **Functions:** `run_migrations_offline()` — generates SQL script; `run_migrations_online()` — connects to DB and runs migrations. |
+| [`script.py.mako`](script.py.mako) | Mako template for `alembic revision --autogenerate`. Boilerplate: revision ID, `down_revision`, `upgrade()`, `downgrade()`. |
+
+---
 
 ## Subdirectories
 
 | Directory | Description |
-|---|---|
-| [`versions/`](versions/README.md) | Contains all migration revision scripts, ordered chronologically. |
+|-----------|--------------|
+| [**versions/**](versions/README.md) | Migration revision scripts 001–009. |
+
+---
 
 ## Common Commands
 
 ```bash
-# Apply all pending migrations
-alembic upgrade head
-
-# Rollback the last migration
-alembic downgrade -1
-
-# Auto-generate a new migration from model changes
-alembic revision --autogenerate -m "describe your change"
-
-# Show current migration state
-alembic current
-
-# View migration history
-alembic history
+alembic upgrade head       # Apply all pending migrations
+alembic downgrade -1       # Rollback last migration
+alembic revision --autogenerate -m "describe change"  # Generate new migration
+alembic current            # Show current revision
+alembic history            # View migration history
 ```

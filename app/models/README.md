@@ -4,35 +4,45 @@ SQLAlchemy ORM models for the AI Job Hunting Assistant.
 
 ---
 
-**Navigation:** [< Back to app/](../README.md) | [<< Back to Root](../../README.md) | **Sibling:** [db/](../db/README.md)
+## Project Idea (from [overview.md](../../overview.md))
+
+Models map to PostgreSQL tables: **User Profile** (users, educations, work_experiences, projects, skills) and **Jobs** (jobs for market intelligence, job_applications for Eric's confirmed applications). Two-table separation: `jobs` = all scraped jobs; `job_applications` = application history.
 
 ---
 
-## Purpose
+## Navigation
 
-This package defines six database tables across two domains: **User Profile** (five related tables) and **Job Ingestion** (one standalone table). All models inherit from `app.db.base.Base`, use UUID primary keys, and follow the SQLAlchemy 2.0 `mapped_column` style with full Python type annotations.
+| Direction | Link |
+|-----------|------|
+| **Prev folder** | [../db/](db/README.md) |
+| **Next folder** | [../schemas/](schemas/README.md) |
+| **Siblings** | [core/](../core/README.md) · [services/](../services/README.md) · [routers/](../routers/README.md) |
+
+---
 
 ## Files
 
 | File | Description |
-|---|---|
-| [`__init__.py`](__init__.py) | Package-level re-exports. Imports and exposes `User`, `Education`, `WorkExperience`, `Project`, `Skill`, and `Job`. Defines `__all__` for explicit public API. |
-| [`user.py`](user.py) | **`User` model** — maps to the `users` table. Mandatory fields: `name`, `email` (unique, indexed). Optional fields: `phone`, `linkedin_url`, `github_url`, `personal_website`, `location_country`, `location_province_state`, `location_city`. Timestamps: `created_at` (auto on insert), `updated_at` (auto on insert and update via `onupdate`). Defines four `relationship()` attributes (`educations`, `work_experiences`, `projects`, `skills`) with `back_populates` and `cascade="all, delete-orphan"`. |
-| [`education.py`](education.py) | **`Education` model** — maps to the `educations` table. Each row represents one education entry for a user. Mandatory fields: `institution_name`, `degree`, `field_of_study`, full address (`address_country`, `address_province_state`, `address_city`), `start_date`, `graduate_date`. Optional: `gpa`, `description`. Foreign key `user_id` references `users.id` with `ON DELETE CASCADE`. Check constraint ensures `graduate_date >= start_date`. Dates stored as `DATE` type (use first-of-month for month+year, e.g. `2024-09-01`). |
-| [`work_experience.py`](work_experience.py) | **`WorkExperience` model** — maps to the `work_experiences` table. Each row is one work experience entry. Mandatory fields: `company_name` (indexed), `job_title`, `start_date`, `is_remote` (Boolean, defaults to `false`), `description`. Optional: `location_country`, `location_province_state`, `location_city`, `end_date` (NULL = currently working). Foreign key `user_id → users.id CASCADE`. Check constraint: `end_date IS NULL OR end_date >= start_date`. |
-| [`project.py`](project.py) | **`Project` model** — maps to the `projects` table. Each row is one project entry. Mandatory fields: `project_title`, `start_date`, `description`. Optional: `end_date` (NULL = ongoing). Foreign key `user_id → users.id CASCADE`. Check constraint: `end_date IS NULL OR end_date >= start_date`. |
-| [`skill.py`](skill.py) | **`Skill` model** — maps to the `skills` table. One row per skill (normalized, no multi-value columns). Fields: `skill_name` (indexed), `skill_category` (PostgreSQL ENUM constrained to: `language`, `framework`, `database`, `tooling`, `machine_learning`, `soft_skill`). Also defines the `SkillCategory` Python enum class used for type-safe category values. Foreign key `user_id → users.id CASCADE`. |
-| [`job.py`](job.py) | **`Job` model** — maps to the `jobs` table. **Standalone table** (no FK to users). Stores job postings from external sources. Mandatory fields: `website`, `job_title`, `company`, `job_description`. Optional: `location`, `post_datetime`, `source_url`, `search_keyword`, `search_location`. Indexes: `website`, `job_title`, `company`, partial unique on `source_url` (where NOT NULL), composite dedup index on `(website, job_title, company)`. |
+|------|-------------|
+| [`__init__.py`](__init__.py) | Re-exports `User`, `Education`, `WorkExperience`, `Project`, `Skill`, `Job`, `JobApplication`. Defines `__all__` for explicit public API. |
+| [`user.py`](user.py) | **`User`** — maps to `users`. Fields: `name`, `email` (unique), `phone`, `linkedin_url`, `github_url`, `personal_website`, `location_country`/`province_state`/`city`, `created_at`, `updated_at`. Relationships: `educations`, `work_experiences`, `projects`, `skills` (cascade delete). |
+| [`education.py`](education.py) | **`Education`** — maps to `educations`. FK `user_id` → users. Fields: `institution_name`, `degree`, `field_of_study`, address, `start_date`, `graduate_date`, `gpa`, `description`. Check: `graduate_date >= start_date`. |
+| [`work_experience.py`](work_experience.py) | **`WorkExperience`** — maps to `work_experiences`. FK `user_id`. Fields: `company_name`, `job_title`, `location_*`, `start_date`, `end_date`, `is_remote`, `description`. Check: `end_date >= start_date` or NULL. |
+| [`project.py`](project.py) | **`Project`** — maps to `projects`. FK `user_id`. Fields: `project_title`, `start_date`, `end_date`, `description`. Check: `end_date >= start_date` or NULL. |
+| [`skill.py`](skill.py) | **`Skill`** — maps to `skills`. FK `user_id`. Fields: `skill_name`, `skill_category` (ENUM: language, framework, database, tooling, machine_learning, soft_skill). |
+| [`job.py`](job.py) | **`Job`** — maps to `jobs` (standalone). Fields: `website`, `job_title`, `company`, `location`, `job_description`, `post_datetime`, `source_url` (unique when not null), `search_keyword`, `search_location`, `created_at`, `updated_at`. Matching: `match_level`, `match_reason`, `matched_at`, `is_active`, `extracted_yoe`, `extracted_skills`, `extracted_education` (VARCHAR 20), `raw_description_hash`. Indexes: website, job_title, company, source_url, dedup composite. |
+| [`job_application.py`](job_application.py) | **`JobApplication`** — maps to `job_applications`. Stores confirmed applications. Fields: `job_title`, `company_name`, `apply_url` (unique — must equal job `source_url` for dedup), `date_year`/`month`/`day`, `job_description`, `yoe`, `skill_set`, `interview`, `offer`, `rejected`, `created_at`, `updated_at`. |
+
+---
 
 ## Relationships
 
 ```
-User  ──1:N──>  Education        (user.educations / education.user)
-User  ──1:N──>  WorkExperience   (user.work_experiences / work_experience.user)
-User  ──1:N──>  Project          (user.projects / project.user)
-User  ──1:N──>  Skill            (user.skills / skill.user)
+User  ──1:N──>  Education
+User  ──1:N──>  WorkExperience
+User  ──1:N──>  Project
+User  ──1:N──>  Skill
 
-Job   (standalone — no relationships yet)
+Job              (standalone)
+JobApplication   (standalone — apply_url references jobs.source_url by convention)
 ```
-
-All user relationships use `back_populates` for bidirectional access and `cascade="all, delete-orphan"` on the parent side so that deleting a `User` automatically removes all associated child records.

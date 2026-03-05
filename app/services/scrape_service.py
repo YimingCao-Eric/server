@@ -1,28 +1,24 @@
 from __future__ import annotations
 
-import os
-
 import httpx
 from fastapi import HTTPException, status
 
+from app.core.config import settings
 from app.schemas.job_scrape_schema import ScrapeRequest
-
-BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", "http://localhost:8000")
-
-_SCRAPER_WEBHOOKS: dict[str, str | None] = {
-    "linkedin": os.getenv("SCRAPER_WEBHOOK_LINKEDIN"),
-    "indeed": os.getenv("SCRAPER_WEBHOOK_INDEED"),
-    "glassdoor": os.getenv("SCRAPER_WEBHOOK_GLASSDOOR"),
-}
 
 
 def _get_webhook_url(website: str) -> str:
-    if website not in _SCRAPER_WEBHOOKS:
+    mapping = {
+        "linkedin": settings.scraper_webhook_linkedin,
+        "indeed": settings.scraper_webhook_indeed,
+        "glassdoor": settings.scraper_webhook_glassdoor,
+    }
+    if website.lower() not in mapping:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Unsupported website: '{website}'. Supported: {sorted(_SCRAPER_WEBHOOKS.keys())}",
+            detail=f"Unsupported website: '{website}'. Supported: {sorted(mapping.keys())}",
         )
-    url = _SCRAPER_WEBHOOKS[website]
+    url = mapping.get(website.lower())
     if not url:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -39,7 +35,7 @@ async def trigger_scrape(data: ScrapeRequest) -> dict[str, str]:
         "location": data.location,
         "date_posted_filter": data.date_posted_filter,
         "max_results": data.max_results,
-        "ingest_callback_url": f"{BACKEND_BASE_URL}/jobs/ingest",
+        "ingest_callback_url": f"{settings.backend_base_url}/jobs/ingest",
     }
 
     async with httpx.AsyncClient(timeout=10.0) as client:

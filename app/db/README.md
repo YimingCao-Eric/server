@@ -4,18 +4,25 @@ Database infrastructure layer.
 
 ---
 
-**Navigation:** [< Back to app/](../README.md) | [<< Back to Root](../../README.md) | **Sibling:** [models/](../models/README.md)
+## Project Idea (from [overview.md](../../overview.md))
+
+Provides the SQLAlchemy declarative base and async session management used by all models and services. The backend uses PostgreSQL 16 with asyncpg for low-latency, non-blocking DB access.
 
 ---
 
-## Purpose
+## Navigation
 
-This package provides the foundational database components that all models and services depend on: the SQLAlchemy declarative base class and the async database session management.
+| Direction | Link |
+|-----------|------|
+| **Prev folder** | [../core/](core/README.md) |
+| **Next folder** | [../models/](models/README.md) |
+| **Siblings** | [schemas/](../schemas/README.md) · [services/](../services/README.md) · [routers/](../routers/README.md) |
+
+---
 
 ## Files
 
 | File | Description |
-|---|---|
-| [`__init__.py`](__init__.py) | Package marker. Empty file. |
-| [`base.py`](base.py) | Defines `Base`, the SQLAlchemy `DeclarativeBase` that all ORM models inherit from. Key features: **(1)** Attaches a `MetaData` with a consistent naming convention for all constraints (`ix_`, `uq_`, `ck_`, `fk_`, `pk_` prefixes) to ensure deterministic, Alembic-friendly constraint names. **(2)** Declares shared columns inherited by every model: `id` (UUID primary key, auto-generated via `uuid.uuid4`) and `created_at` (timezone-aware timestamp, defaults to UTC now). |
-| [`session.py`](session.py) | Configures the async database connection. Reads `DATABASE_URL` from environment variables (falling back to a localhost default). Creates an `AsyncEngine` via `create_async_engine` (asyncpg driver) and an `async_sessionmaker` factory. Exposes `get_session()`, an async generator that yields `AsyncSession` instances — designed to be used as a FastAPI dependency or in any async context. |
+|------|-------------|
+| [`base.py`](base.py) | **`Base`** — SQLAlchemy `DeclarativeBase` that all ORM models inherit from. **Features:** (1) `MetaData` with naming convention (`ix_`, `uq_`, `ck_`, `fk_`, `pk_`) for deterministic constraint names. (2) Shared columns: `id` (UUID, `uuid.uuid4`), `created_at` (timezone-aware, UTC). **Class:** `Base`. |
+| [`session.py`](session.py) | **Async database connection.** Reads `DATABASE_URL` from config. **Functions:** `get_session()` — async generator yielding `AsyncSession`; use as FastAPI dependency. **Objects:** `engine` (create_async_engine), `async_session_factory` (async_sessionmaker). |

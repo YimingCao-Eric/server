@@ -1,9 +1,13 @@
 from fastapi import FastAPI
 
+from app.routers.application_router import router as application_router
 from app.routers.education_router import router as education_router
+from app.routers.email_router import router as email_router
 from app.routers.job_router import router as job_router
 from app.routers.profile_router import router as profile_router
+from app.routers.report_router import router as report_router
 from app.routers.project_router import router as project_router
+from app.routers.skill_router import router as skill_router
 from app.routers.work_experience_router import router as work_experience_router
 
 app = FastAPI(
@@ -14,9 +18,13 @@ app = FastAPI(
 
 app.include_router(profile_router)
 app.include_router(education_router)
+app.include_router(email_router)
 app.include_router(work_experience_router)
 app.include_router(project_router)
+app.include_router(skill_router)
 app.include_router(job_router)
+app.include_router(application_router)
+app.include_router(report_router)
 
 
 @app.get("/health", tags=["Health"])

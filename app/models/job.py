@@ -3,8 +3,8 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Index, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, DateTime, Index, Integer, String, Text, func, text
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -33,6 +33,32 @@ class Job(Base):
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
     )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    # Matching pipeline fields
+    match_level: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    match_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    matched_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, server_default=text("true"), nullable=False
+    )
+
+    # JD extraction fields
+    extracted_yoe: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    extracted_skills: Mapped[list[str] | None] = mapped_column(
+        ARRAY(Text), nullable=True
+    )
+    extracted_education: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+    # Content dedup hash
+    raw_description_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     __table_args__ = (
         Index("ix_jobs_website", "website"),
