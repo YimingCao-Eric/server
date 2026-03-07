@@ -14,7 +14,9 @@ class JobIngestRequest(BaseModel):
     location: str | None = Field(None, max_length=255)
     job_description: str
     post_datetime: datetime | None = None
-    source_url: str | None = None
+    job_url: str | None = None  # renamed from source_url
+    apply_url: str | None = None
+    easy_apply: bool = False
     search_keyword: str | None = Field(None, max_length=255)
     search_location: str | None = Field(None, max_length=255)
 
@@ -26,7 +28,7 @@ class JobIngestRequest(BaseModel):
             raise ValueError("Field cannot be empty")
         return v
 
-    @field_validator("location", "source_url", "search_keyword", "search_location", mode="before")
+    @field_validator("location", "job_url", "apply_url", "search_keyword", "search_location", mode="before")
     @classmethod
     def _strip_optional(cls, v: str | None) -> str | None:
         if v is None:
@@ -43,7 +45,7 @@ class JobIngestRequest(BaseModel):
                 "location": "Vancouver, BC",
                 "job_description": "Full original job content here...",
                 "post_datetime": "2026-02-27T10:00:00Z",
-                "source_url": "https://linkedin.com/job/123",
+                "job_url": "https://linkedin.com/job/123",
                 "search_keyword": "Software Engineer",
                 "search_location": "Vancouver",
             }
@@ -105,7 +107,7 @@ class JobRecommendation(BaseModel):
     job_title: str
     company: str
     location: str
-    source_url: str | None
+    job_url: str | None
     match_level: str
     match_reason: str
     post_datetime: datetime | None

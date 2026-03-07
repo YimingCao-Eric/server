@@ -370,7 +370,7 @@ async def get_recommendations(
             job_title=j.job_title,
             company=j.company,
             location=j.location or "",
-            source_url=j.source_url,
+            job_url=j.job_url,
             match_level=j.match_level or "irrelevant",
             match_reason=j.match_reason or "",
             post_datetime=j.post_datetime,

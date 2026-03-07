@@ -30,7 +30,7 @@ def main() -> None:
                 "location": "Vancouver, BC",
                 "job_description": "We need Python and FastAPI skills. 3 years experience.",
                 "post_datetime": "2026-03-04T10:00:00Z",
-                "source_url": "https://match-result-test.com/jobs/001",
+                "job_url": "https://match-result-test.com/jobs/001",
             },
         )
         assert r.status_code == 200
@@ -117,7 +117,7 @@ def main() -> None:
                 "location": "Remote",
                 "job_description": "Requires PhD in ML. 10 years experience.",
                 "post_datetime": "2026-03-04T10:00:00Z",
-                "source_url": "https://match-result-test.com/jobs/002",
+                "job_url": "https://match-result-test.com/jobs/002",
             },
         )
         assert r_ingest.status_code == 200

@@ -10,8 +10,8 @@ from app.schemas.job_schema import JobIngestRequest, JobMatchResultWrite
 
 
 async def _find_duplicate(session: AsyncSession, data: JobIngestRequest) -> Job | None:
-    if data.source_url:
-        stmt = select(Job).where(Job.source_url == data.source_url)
+    if data.job_url:
+        stmt = select(Job).where(Job.job_url == data.job_url)
     else:
         stmt = select(Job).where(
             Job.website == data.website,
