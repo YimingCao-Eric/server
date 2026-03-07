@@ -257,6 +257,7 @@ async def run_match_pipeline(
         if not _education_gate(job.extracted_education):
             job.match_level = "irrelevant"
             job.match_reason = "education_gate"
+            job.skipped_reason = "education_gate"
             job.matched_at = datetime.now(timezone.utc)
             results.append(
                 JobMatchResult(
@@ -274,6 +275,7 @@ async def run_match_pipeline(
         if not _yoe_gate(job.extracted_yoe, profile_yoe):
             job.match_level = "irrelevant"
             job.match_reason = "yoe_gate"
+            job.skipped_reason = "yoe_gate"
             job.matched_at = datetime.now(timezone.utc)
             results.append(
                 JobMatchResult(
@@ -291,6 +293,7 @@ async def run_match_pipeline(
         if not _keyword_prefilter(job.extracted_skills or [], profile_skill_names):
             job.match_level = "irrelevant"
             job.match_reason = "keyword_filter"
+            job.skipped_reason = "keyword_filter"
             job.matched_at = datetime.now(timezone.utc)
             results.append(
                 JobMatchResult(

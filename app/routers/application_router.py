@@ -10,6 +10,8 @@ from app.schemas.application_schema import (
     ApplicationCountResponse,
     DedupRequest,
     DedupResponse,
+    JobApplicationBatchItem,
+    JobApplicationBatchResponse,
     JobApplicationCreate,
     JobApplicationRead,
     JobApplicationUpdate,
@@ -39,6 +41,26 @@ async def create_application(
                 detail="apply_url already exists",
             )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post(
+    "/batch",
+    response_model=JobApplicationBatchResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Batch create job applications",
+)
+async def create_applications_batch(
+    data: list[JobApplicationBatchItem],
+    session: AsyncSession = Depends(get_session),
+) -> JobApplicationBatchResponse:
+    """
+    Insert multiple applications in a single transaction.
+    On conflict (apply_url exists): update existing record.
+    """
+    logged, failed = await application_service.create_applications_batch(
+        session, data
+    )
+    return JobApplicationBatchResponse(logged=logged, failed=failed)
 
 
 @router.post(

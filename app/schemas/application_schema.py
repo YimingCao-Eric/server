@@ -44,6 +44,29 @@ class JobApplicationRead(BaseModel):
     updated_at: datetime
 
 
+class JobApplicationBatchItem(BaseModel):
+    """Single item for POST /jobs/applications/batch."""
+
+    job_title: str
+    company_name: str
+    apply_url: str
+    date_year: int
+    date_month: int = Field(ge=1, le=12)
+    date_day: int = Field(ge=1, le=31)
+    job_description: str = ""
+    status: str | None = None
+    source: str | None = None
+    yoe: float = 0.0
+    skill_set: list[str] = Field(default_factory=list)
+    notes: str | None = None
+    company_name_variants: list[str] | None = None
+
+
+class JobApplicationBatchResponse(BaseModel):
+    logged: int
+    failed: list[str] = Field(default_factory=list)
+
+
 class DedupRequest(BaseModel):
     urls: list[str]  # URLs from today's search results (max 50)
 

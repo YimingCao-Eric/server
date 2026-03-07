@@ -7,7 +7,11 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.job_application import JobApplication
-from app.schemas.application_schema import JobApplicationCreate, JobApplicationUpdate
+from app.schemas.application_schema import (
+    JobApplicationBatchItem,
+    JobApplicationCreate,
+    JobApplicationUpdate,
+)
 
 
 async def create_application(
@@ -38,6 +42,62 @@ async def create_application(
     await session.commit()
     await session.refresh(app)
     return app
+
+
+async def create_applications_batch(
+    session: AsyncSession,
+    items: list[JobApplicationBatchItem],
+) -> tuple[int, list[str]]:
+    """
+    Insert multiple applications in a single transaction.
+    On conflict (apply_url exists): update job_description, yoe, skill_set.
+    Returns (logged_count, failed_urls).
+    """
+    logged = 0
+    failed: list[str] = []
+
+    for item in items:
+        apply_url_str = str(item.apply_url).strip().rstrip("/")
+        if not apply_url_str:
+            failed.append(item.apply_url)
+            continue
+
+        existing = await session.execute(
+            select(JobApplication).where(JobApplication.apply_url == apply_url_str)
+        )
+        app = existing.scalar_one_or_none()
+
+        if app is not None:
+            app.job_title = item.job_title
+            app.company_name = item.company_name
+            app.date_year = item.date_year
+            app.date_month = item.date_month
+            app.date_day = item.date_day
+            app.job_description = item.job_description or ""
+            app.yoe = int(item.yoe)
+            app.skill_set = item.skill_set
+            app.updated_at = datetime.now(timezone.utc)
+            logged += 1
+        else:
+            try:
+                new_app = JobApplication(
+                    job_title=item.job_title,
+                    company_name=item.company_name,
+                    apply_url=apply_url_str,
+                    date_year=item.date_year,
+                    date_month=item.date_month,
+                    date_day=item.date_day,
+                    job_description=item.job_description or "",
+                    yoe=int(item.yoe),
+                    skill_set=item.skill_set,
+                )
+                session.add(new_app)
+                logged += 1
+            except Exception:
+                failed.append(apply_url_str)
+
+    await session.commit()
+    return logged, failed
 
 
 async def get_application(

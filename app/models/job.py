@@ -72,6 +72,9 @@ class Job(Base):
     # Content dedup hash
     raw_description_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
+    # Gate/skip reason (salary_gate, critical_skills_gate, education_gate, etc.)
+    skipped_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
     # Additional job metadata
     dismissed: Mapped[bool] = mapped_column(
         Boolean, server_default=text("false"), nullable=False
@@ -99,4 +102,5 @@ class Job(Base):
         Index("ix_jobs_dismissed", "dismissed"),
         Index("ix_jobs_external_id", "external_id"),
         Index("ix_jobs_raw_description_hash", "raw_description_hash"),
+        Index("ix_jobs_skipped_reason", "skipped_reason"),
     )
